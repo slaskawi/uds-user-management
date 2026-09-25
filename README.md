@@ -4,6 +4,8 @@ A TypeScript/React single-page application that lists users in Keycloak's `uds` 
 An Express backend calls the Keycloak Admin REST API using Kubernetes service-account
 JWT assertions. The browser never receives these credentials.
 
+<img width="2558" height="809" alt="image" src="https://github.com/user-attachments/assets/ad3e61aa-b9da-4956-80ca-2ce4cf19f33a" />
+
 ## Run locally on UDS Core
 
 Prerequisites: Docker, k3d, UDS CLI, kubectl, Helm, Node.js 22.12+, npm, curl, jq,
