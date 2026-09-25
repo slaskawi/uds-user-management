@@ -1,0 +1,20 @@
+kind: ZarfPackageConfig
+metadata:
+  name: user-management
+  version: 0.1.0
+  description: Keycloak user listing on UDS Core
+constants:
+  - name: IMAGE
+    value: "###ZARF_PKG_TMPL_IMAGE###"
+components:
+  - name: user-management
+    required: true
+    images:
+      - "###ZARF_PKG_TMPL_IMAGE###"
+    charts:
+      - name: user-management
+        version: 0.1.0
+        namespace: user-management
+        localPath: chart
+        valuesFiles:
+          - zarf-values.yaml

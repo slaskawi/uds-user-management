@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: user-management
+  namespace: {{ .Release.Namespace }}
+automountServiceAccountToken: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-management
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-management
+  template:
+    metadata:
+      labels:
+        app: user-management
+    spec:
+      serviceAccountName: user-management
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: {{ .Values.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: KEYCLOAK_URL
+              value: https://keycloak.admin.uds.dev
+            - name: KEYCLOAK_REALM
+              value: uds
+            - name: OIDC_ISSUER
+              value: https://sso.uds.dev/realms/uds
+            - name: OIDC_CLIENT_ID
+              value: user-management-sso
+            - name: REQUIRED_GROUP
+              value: /UDS Core/Admin
+            - name: SA_TOKEN_PATH
+              value: /var/run/secrets/keycloak/token
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          volumeMounts:
+            - name: keycloak-assertion
+              mountPath: /var/run/secrets/keycloak
+              readOnly: true
+      volumes:
+        - name: keycloak-assertion
+          projected:
+            sources:
+              - serviceAccountToken:
+                  audience: https://keycloak.admin.uds.dev/realms/uds
+                  expirationSeconds: 600
+                  path: token
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-management
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: user-management
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http

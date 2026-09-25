@@ -1,0 +1,44 @@
+apiVersion: uds.dev/v1alpha1
+kind: Package
+metadata:
+  name: user-management
+  namespace: {{ .Release.Namespace }}
+spec:
+  network:
+    serviceMesh:
+      mode: ambient
+    expose:
+      - service: user-management
+        selector:
+          app: user-management
+        gateway: tenant
+        host: users
+        port: 3000
+    allow:
+      # Admin REST endpoints are accessible through the admin gateway only.
+      - direction: Egress
+        selector:
+          app: user-management
+        remoteNamespace: istio-admin-gateway
+        ports: [443, 8443]
+  sso:
+    - name: User Management
+      clientId: user-management-sso
+      protocol: openid-connect
+      redirectUris:
+        - https://users.uds.dev/login
+      enableAuthserviceSelector:
+        app: user-management
+      groups:
+        anyOf:
+          - /UDS Core/Admin
+      protocolMappers:
+        - name: groups
+          protocol: openid-connect
+          protocolMapper: oidc-group-membership-mapper
+          config:
+            claim.name: groups
+            full.path: "true"
+            access.token.claim: "true"
+            id.token.claim: "true"
+            userinfo.token.claim: "true"
